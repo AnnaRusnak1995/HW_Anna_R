@@ -1,0 +1,208 @@
+---
+title: "Blackjack"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+```
+
+
+```{r}
+# read csv
+df <- read.csv2("https://raw.githubusercontent.com/AntonZamyatin/r-course/main/HW2/deck.csv")
+```
+
+
+## fix the seed if necessary
+```{r}
+set.seed(42)
+```
+
+
+```{r}
+# combine into four full decks 
+four_full_decks <- rbind(df, df, df, df)
+```
+
+
+
+## Definition of global variables
+```{r}
+casino_deck_current <- NULL
+dealer_hand <- NULL
+my_hand <- NULL
+```
+
+
+
+
+
+## Definition of the function shuffle_deck
+```{r}
+shuffle_deck <- function (casino_deck) { 
+  
+  # use the sample function to shuffle deck randomly 
+  res_casino_deck <- casino_deck[sample(1:nrow(casino_deck)), ]
+  
+  return(res_casino_deck)
+  }
+```
+
+
+
+
+## Definition of the function start_game
+```{r}
+compute_chances <- function(sum_my_hand, sum_dealer_hand){
+  # $$$ COMPUTE CHANCES $$$
+  # To compute chances mean to count a probability that next card for you will bring you sum of points more than dealer sum and less than 22 or 100% if you already satisfy these conditions.
+  if ((sum_my_hand >= sum_dealer_hand ) & (sum_my_hand < 22)){
+    chances <- 1
+  } else { 
+    distance_to_win <- min(21, sum_dealer_hand) - sum_my_hand
+    if(!(distance_to_win %in% casino_deck_current$value)){
+        chances <- 0
+      }
+      else{
+      chances <- nrow(casino_deck_current[(casino_deck_current$value == distance_to_win),])
+     }
+  }
+  return(chances)
+  }
+
+print_state <- function(my_table, dealer_table){
+  sum_my_hand <- sum(my_table$value)
+  sum_dealer_hand <- sum(dealer_table$value)
+  
+  print_table <- function(who, table, sum){
+    names(table) <- NULL
+    print(paste(who, "hand:", sep=" "))
+    print(table, row.names = F)
+    print(paste("sum", sum, sep=" "))
+  }
+  print("******************Current state******************")
+  print_table("Dealers", dealer_table, sum_dealer_hand)
+  print_table("Your", my_table, sum_my_hand)
+  print(paste("chances", compute_chances(sum_my_hand, sum_dealer_hand)*100, "%", sep=" "))
+  print("******************End of current state******************")
+
+}
+
+start_game <- function() {
+  # this function shuffles deck, deals 2 cards for you and dealer. and prints state
+  
+  # suffle deck 
+  casino_deck_shuffled <- shuffle_deck(four_full_decks)
+  
+  # tidy up
+  # use <<- to overwrite global variables when we are inside a function 
+  dealer_hand <<- NULL
+  my_hand <<- NULL 
+  
+  # deal first and trird card for the dealer
+  dealer_hand <<- casino_deck_shuffled[c(1,3), ]
+  
+  # deal first and fourth card for me 
+  my_hand <<- casino_deck_shuffled[c(2,4), ]
+  
+  casino_deck_current <<- casino_deck_shuffled[5:nrow(casino_deck_shuffled),]
+  print_state(my_hand, dealer_hand)
+}
+```
+
+## Definition of the function deal
+```{r}
+deal <- function() { 
+  # This function deals you a card and prints state
+  
+  # deal a card to me 
+  my_hand <<- rbind(my_hand, casino_deck_current[1,])
+  
+  if(sum(sum(my_hand$value) > 21)){
+    stop_game()
+  }
+  # remove this card from the deck
+  casino_deck_current <<- casino_deck_current[2:nrow(casino_deck_current),]
+  print_state(my_hand, dealer_hand)
+}
+```
+
+## Definition of the function stop_game
+
+```{r}
+stop_game <- function(){
+  # This function prints result: win or loose
+  
+  sum_my_hand <- 0 
+  sum_dealer_hand <- 0 
+  
+  for (i in 1:nrow(dealer_hand)) { 
+    sum_dealer_hand <- sum_dealer_hand + dealer_hand[i,"value"]
+  }
+  
+  for (i in 1:nrow(my_hand)) { 
+    sum_my_hand <- sum_my_hand + my_hand[i,"value"]
+  }
+  
+  # If my card sum more than 21 I lose.
+  if (sum_my_hand > 21) {
+    print("lose") 
+  } else if (sum_my_hand >= sum_dealer_hand) { # I win if my card sum is more or equal than dealers card sum.
+    print("win")
+  } else  { 
+    print("lose")
+  } 
+}
+```
+
+
+
+
+
+Notice that by the definition of success, I win if my card sum is more or EQUAL than dealers card sum.
+
+
+## Example 1
+```{r}
+# Game starts when dealer shuffle all cards and give 2 card for you and 2 for himself.
+start_game()
+deal()
+stop_game()
+```
+
+
+
+
+
+## Example 2
+```{r}
+# Game starts when dealer shuffle all cards and give 2 card for you and 2 for himself.
+start_game()
+deal()
+deal()
+stop_game()
+```
+
+
+
+## Example 3
+```{r}
+start_game()
+deal()
+stop_game()
+```
+
+
+
+
+
+## Example 4
+```{r}
+start_game()
+deal()
+deal()
+stop_game()
+```
